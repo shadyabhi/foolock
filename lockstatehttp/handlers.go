@@ -47,7 +47,9 @@ func (h *Handler) handleAcquire(w http.ResponseWriter, r *http.Request) {
 	client := r.URL.Query().Get("client")
 	if client == "" {
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(ErrorResponse{Error: "client parameter required"})
+		if err := json.NewEncoder(w).Encode(ErrorResponse{Error: "client parameter required"}); err != nil {
+			log.Printf("Error encoding response: %v", err)
+		}
 		return
 	}
 
@@ -57,7 +59,9 @@ func (h *Handler) handleAcquire(w http.ResponseWriter, r *http.Request) {
 		parsedTTL, err := time.ParseDuration(ttlStr)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(ErrorResponse{Error: "invalid ttl format"})
+			if err := json.NewEncoder(w).Encode(ErrorResponse{Error: "invalid ttl format"}); err != nil {
+				log.Printf("Error encoding response: %v", err)
+			}
 			return
 		}
 		ttl = parsedTTL
@@ -68,31 +72,39 @@ func (h *Handler) handleAcquire(w http.ResponseWriter, r *http.Request) {
 	if result.Success {
 		log.Printf("Lock %s by %s until %s", result.Message, client, result.ExpiresAt.Format(time.RFC3339))
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(LockResponse{
+		if err := json.NewEncoder(w).Encode(LockResponse{
 			Holder:    result.Holder,
 			ExpiresAt: result.ExpiresAt.Format(time.RFC3339),
-		})
+		}); err != nil {
+			log.Printf("Error encoding response: %v", err)
+		}
 		return
 	}
 
 	if result.Message == "grace period active" {
 		w.WriteHeader(http.StatusConflict)
-		json.NewEncoder(w).Encode(ErrorResponse{Error: "grace period active"})
+		if err := json.NewEncoder(w).Encode(ErrorResponse{Error: "grace period active"}); err != nil {
+			log.Printf("Error encoding response: %v", err)
+		}
 		return
 	}
 
 	w.WriteHeader(http.StatusConflict)
-	json.NewEncoder(w).Encode(LockResponse{
+	if err := json.NewEncoder(w).Encode(LockResponse{
 		Holder:    result.Holder,
 		ExpiresAt: result.ExpiresAt.Format(time.RFC3339),
-	})
+	}); err != nil {
+		log.Printf("Error encoding response: %v", err)
+	}
 }
 
 func (h *Handler) handleRelease(w http.ResponseWriter, r *http.Request) {
 	client := r.URL.Query().Get("client")
 	if client == "" {
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(ErrorResponse{Error: "client parameter required"})
+		if err := json.NewEncoder(w).Encode(ErrorResponse{Error: "client parameter required"}); err != nil {
+			log.Printf("Error encoding response: %v", err)
+		}
 		return
 	}
 
@@ -100,16 +112,20 @@ func (h *Handler) handleRelease(w http.ResponseWriter, r *http.Request) {
 
 	if !result.Success {
 		w.WriteHeader(http.StatusForbidden)
-		json.NewEncoder(w).Encode(ErrorResponse{Error: result.Message})
+		if err := json.NewEncoder(w).Encode(ErrorResponse{Error: result.Message}); err != nil {
+			log.Printf("Error encoding response: %v", err)
+		}
 		return
 	}
 
 	log.Printf("Lock released by %s", client)
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{"status": "lock released"})
+	if err := json.NewEncoder(w).Encode(map[string]string{"status": "lock released"}); err != nil {
+		log.Printf("Error encoding response: %v", err)
+	}
 }
 
-func (h *Handler) handleStatus(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) handleStatus(w http.ResponseWriter, _ *http.Request) {
 	status := h.state.Status()
 
 	response := LockResponse{
@@ -125,5 +141,7 @@ func (h *Handler) handleStatus(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		log.Printf("Error encoding response: %v", err)
+	}
 }
