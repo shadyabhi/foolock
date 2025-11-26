@@ -52,7 +52,7 @@ func (h *Handler) handleAcquire(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ttlStr := r.URL.Query().Get("ttl")
-	ttl := lockstate.DefaultTTL
+	ttl := 30 * time.Second
 	if ttlStr != "" {
 		parsedTTL, err := time.ParseDuration(ttlStr)
 		if err != nil {
