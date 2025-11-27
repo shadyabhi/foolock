@@ -70,7 +70,7 @@ func (h *Handler) handleAcquire(w http.ResponseWriter, r *http.Request) {
 	result := h.state.Acquire(client, ttl)
 
 	if result.Success {
-		log.Printf("Lock %s by %s until %s", result.Message, client, result.ExpiresAt.Format(time.RFC3339))
+		log.Printf("Lock %s by %s until %s (in %s)", result.Message, client, result.ExpiresAt.Format(time.RFC3339), time.Until(result.ExpiresAt).Round(time.Second))
 		w.WriteHeader(http.StatusOK)
 		if err := json.NewEncoder(w).Encode(LockResponse{
 			Holder:    result.Holder,
