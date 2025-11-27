@@ -60,4 +60,3 @@ HTTP 200
 - **Best practice**
   - Acquire lock → do work → release lock
   - Always release explicitly rather than letting locks expire
-
