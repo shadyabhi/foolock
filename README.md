@@ -22,7 +22,6 @@ DELETE /lock?client=laptop1
 # Check lock status
 GET /lock
 ```
-
 ## Example
 
 ```bash
