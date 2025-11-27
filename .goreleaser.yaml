@@ -1,0 +1,85 @@
+version: 2
+
+before:
+  hooks:
+    - go mod tidy
+    - go mod vendor
+    - go generate ./...
+
+builds:
+  - env:
+      - CGO_ENABLED=0
+    binary: foolock
+    goos:
+      - linux
+      - windows
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    flags:
+      - -mod=vendor
+    ldflags:
+      - -s -w -X main.version={{.Tag}} -X main.commit={{.FullCommit}} -X main.date={{.Date}}
+
+universal_binaries:
+  - replace: true
+
+brews:
+  - name: foolock
+    homepage: https://github.com/shadyabhi/foolock
+    repository:
+      owner: shadyabhi
+      name: homebrew-tap
+    description: "A simple lock service over http"
+    commit_author:
+      name: shadyabhi
+      email: abhijeet.1989@gmail.com
+
+checksum:
+  name_template: 'checksums.txt'
+
+archives:
+  - formats: ['tar.gz']
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+    format_overrides:
+      - goos: windows
+        formats: ['zip']
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+
+snapshot:
+  version_template: "{{ incpatch .Version }}"
+
+dockers:
+  - image_templates:
+      - "docker.io/shadyabhi/foolock:latest"
+      - "docker.io/shadyabhi/foolock:{{ .Tag }}-amd64"
+    use: buildx
+    build_flag_templates:
+      - "--pull"
+      - "--platform=linux/amd64"
+  - image_templates:
+      - "docker.io/shadyabhi/foolock:{{ .Tag }}-arm64"
+    use: buildx
+    build_flag_templates:
+      - "--pull"
+      - "--platform=linux/arm64"
+    goarch: arm64
+
+docker_manifests:
+  - name_template: "docker.io/shadyabhi/foolock:{{ .Tag }}"
+    image_templates:
+      - "docker.io/shadyabhi/foolock:{{ .Tag }}-amd64"
+      - "docker.io/shadyabhi/foolock:{{ .Tag }}-arm64"
