@@ -2,6 +2,7 @@
 
 [![Go](https://github.com/shadyabhi/foolock/actions/workflows/go.yml/badge.svg)](https://github.com/shadyabhi/foolock/actions/workflows/go.yml)
 [![Coverage](https://raw.githubusercontent.com/shadyabhi/foolock/badges/.badges/main/coverage.svg)](https://github.com/shadyabhi/foolock/actions/workflows/go.yml)
+[![Docker PUlls](https://img.shields.io/docker/pulls/shadyabhi/foolock.svg)](https://hub.docker.com/r/shadyabhi/foolock)
 
 A simple HTTP-based distributed lock service for coordinating file access across devices sharing an iCloud folder (or similar).
 
