@@ -3,6 +3,8 @@ package lockstate
 import (
 	"testing"
 	"time"
+
+	"github.com/shadyabhi/foolock/lockstate/msg"
 )
 
 func TestAcquire(t *testing.T) {
@@ -14,25 +16,25 @@ func TestAcquire(t *testing.T) {
 		success bool
 		message string
 	}{
-		{"fresh lock", func(ls *LockState) {}, "client1", time.Minute, true, "acquired"},
+		{"fresh lock", func(ls *LockState) {}, "client1", time.Minute, true, msg.Acquired},
 		{"renew own lock", func(ls *LockState) {
 			ls.Holder = "client1"
 			ls.ExpiresAt = time.Now().Add(time.Minute)
-		}, "client1", time.Minute, true, "renewed"},
+		}, "client1", time.Minute, true, msg.Renewed},
 		{"held by another", func(ls *LockState) {
 			ls.Holder = "client1"
 			ls.ExpiresAt = time.Now().Add(time.Minute)
-		}, "client2", time.Minute, false, "held by another client"},
+		}, "client2", time.Minute, false, msg.HeldByAnother},
 		{"in grace period", func(ls *LockState) {
 			ls.Holder = "client1"
 			ls.ExpiresAt = time.Now().Add(-time.Second)
 			ls.GraceUntil = time.Now().Add(time.Minute)
-		}, "client2", time.Minute, false, "grace period active"},
+		}, "client2", time.Minute, false, msg.GracePeriodActive},
 		{"expired past grace", func(ls *LockState) {
 			ls.Holder = "client1"
 			ls.ExpiresAt = time.Now().Add(-2 * time.Minute)
 			ls.GraceUntil = time.Now().Add(-time.Minute)
-		}, "client2", time.Minute, true, "acquired from client1"},
+		}, "client2", time.Minute, true, msg.Acquired + " from client1"},
 	}
 
 	for _, tt := range tests {

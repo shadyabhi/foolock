@@ -1,6 +1,10 @@
 package lockstate
 
-import "time"
+import (
+	"time"
+
+	"github.com/shadyabhi/foolock/lockstate/msg"
+)
 
 type AcquireResult struct {
 	Success bool
@@ -43,7 +47,7 @@ func (ls *LockState) respRenewLock(now time.Time, ttl time.Duration) AcquireResu
 		Success:   true,
 		Holder:    ls.Holder,
 		ExpiresAt: ls.ExpiresAt,
-		Message:   "renewed",
+		Message:   msg.Renewed,
 	}
 }
 
@@ -56,7 +60,7 @@ func (ls *LockState) respAlreadyLocked() AcquireResult {
 		Success:   false,
 		Holder:    ls.Holder,
 		ExpiresAt: ls.ExpiresAt,
-		Message:   "held by another client",
+		Message:   msg.HeldByAnother,
 	}
 }
 
@@ -70,7 +74,7 @@ func (ls *LockState) respActiveGracePeriod() AcquireResult {
 		Holder:     ls.Holder,
 		ExpiresAt:  ls.ExpiresAt,
 		GraceUntil: ls.GraceUntil,
-		Message:    "grace period active",
+		Message:    msg.GracePeriodActive,
 	}
 }
 
@@ -80,9 +84,9 @@ func (ls *LockState) acquireLock(client string, now time.Time, ttl time.Duration
 	ls.ExpiresAt = now.Add(ttl)
 	ls.GraceUntil = ls.ExpiresAt.Add(ls.gracePeriod)
 
-	message := "acquired"
+	message := msg.Acquired
 	if previousHolder != "" {
-		message = "acquired from " + previousHolder
+		message = msg.Acquired + " from " + previousHolder
 	}
 
 	return AcquireResult{

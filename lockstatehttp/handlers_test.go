@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/shadyabhi/foolock/lockstate"
+	"github.com/shadyabhi/foolock/lockstate/msg"
 	"github.com/stretchr/testify/require"
 )
 
@@ -47,8 +48,14 @@ func TestHandleAcquire(t *testing.T) {
 			query:  "?client=c1",
 			status: http.StatusOK,
 			check: func(t *testing.T, m map[string]any) {
+				if m["success"] != true {
+					t.Error("expected success to be true")
+				}
 				if m["holder"] != "c1" {
 					t.Errorf("holder = %v, want c1", m["holder"])
+				}
+				if m["message"] != msg.Acquired {
+					t.Errorf("message = %v, want %v", m["message"], msg.Acquired)
 				}
 			},
 		},
@@ -60,8 +67,14 @@ func TestHandleAcquire(t *testing.T) {
 			query:  "?client=c1",
 			status: http.StatusConflict,
 			check: func(t *testing.T, m map[string]any) {
+				if m["success"] != false {
+					t.Error("expected success to be false")
+				}
 				if m["holder"] != "other" {
 					t.Errorf("holder = %v, want other", m["holder"])
+				}
+				if m["message"] != msg.HeldByAnother {
+					t.Errorf("message = %v, want %v", m["message"], msg.HeldByAnother)
 				}
 			},
 		},
@@ -75,7 +88,7 @@ func TestHandleAcquire(t *testing.T) {
 			query:  "?client=c1",
 			status: http.StatusConflict,
 			check: func(t *testing.T, m map[string]any) {
-				if m["error"] != "grace period active" {
+				if m["error"] != msg.GracePeriodActive {
 					t.Error("expected grace period error")
 				}
 			},
@@ -131,8 +144,11 @@ func TestHandleRelease(t *testing.T) {
 			query:  "?client=c1",
 			status: http.StatusOK,
 			check: func(t *testing.T, m map[string]any) {
-				if m["status"] != "lock released" {
-					t.Error("expected lock released")
+				if m["success"] != true {
+					t.Error("expected success to be true")
+				}
+				if m["message"] != msg.LockReleased {
+					t.Errorf("expected message %v, got %v", msg.LockReleased, m["message"])
 				}
 			},
 		},
@@ -183,8 +199,14 @@ func TestHandleStatus(t *testing.T) {
 			name:  "no lock",
 			setup: nil,
 			check: func(t *testing.T, m map[string]any) {
+				if m["success"] != true {
+					t.Error("expected success to be true")
+				}
 				if m["holder"] != "" {
 					t.Errorf("holder = %v, want empty", m["holder"])
+				}
+				if m["message"] != msg.NoLockHeld {
+					t.Errorf("message = %v, want %v", m["message"], msg.NoLockHeld)
 				}
 			},
 		},
@@ -194,8 +216,14 @@ func TestHandleStatus(t *testing.T) {
 				ls.Acquire("c1", time.Minute)
 			},
 			check: func(t *testing.T, m map[string]any) {
+				if m["success"] != true {
+					t.Error("expected success to be true")
+				}
 				if m["holder"] != "c1" {
 					t.Errorf("holder = %v, want c1", m["holder"])
+				}
+				if m["message"] != msg.LockHeld {
+					t.Errorf("message = %v, want %v", m["message"], msg.LockHeld)
 				}
 				if m["expires_at"] == nil {
 					t.Error("expected expires_at")
@@ -210,6 +238,12 @@ func TestHandleStatus(t *testing.T) {
 				ls.GraceUntil = time.Now().Add(time.Minute)
 			},
 			check: func(t *testing.T, m map[string]any) {
+				if m["success"] != true {
+					t.Error("expected success to be true")
+				}
+				if m["message"] != msg.LockHeld {
+					t.Errorf("message = %v, want %v", m["message"], msg.LockHeld)
+				}
 				if m["grace_until"] == nil {
 					t.Error("expected grace_until")
 				}

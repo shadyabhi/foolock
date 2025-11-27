@@ -1,6 +1,10 @@
 package lockstate
 
-import "time"
+import (
+	"time"
+
+	"github.com/shadyabhi/foolock/lockstate/msg"
+)
 
 type ReleaseResult struct {
 	Success bool
@@ -14,7 +18,7 @@ func (ls *LockState) Release(client string) ReleaseResult {
 	if ls.Holder != client {
 		return ReleaseResult{
 			Success: false,
-			Message: "client does not hold the lock",
+			Message: msg.ClientNotHolder,
 		}
 	}
 
@@ -24,6 +28,6 @@ func (ls *LockState) Release(client string) ReleaseResult {
 
 	return ReleaseResult{
 		Success: true,
-		Message: "lock released",
+		Message: msg.LockReleased,
 	}
 }

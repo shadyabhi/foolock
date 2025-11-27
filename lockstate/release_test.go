@@ -3,6 +3,8 @@ package lockstate
 import (
 	"testing"
 	"time"
+
+	"github.com/shadyabhi/foolock/lockstate/msg"
 )
 
 func TestRelease(t *testing.T) {
@@ -16,12 +18,12 @@ func TestRelease(t *testing.T) {
 		{"release own lock", func(ls *LockState) {
 			ls.Holder = "client1"
 			ls.ExpiresAt = time.Now().Add(time.Minute)
-		}, "client1", true, "lock released"},
+		}, "client1", true, msg.LockReleased},
 		{"release other's lock", func(ls *LockState) {
 			ls.Holder = "client1"
 			ls.ExpiresAt = time.Now().Add(time.Minute)
-		}, "client2", false, "client does not hold the lock"},
-		{"release empty lock", func(ls *LockState) {}, "client1", false, "client does not hold the lock"},
+		}, "client2", false, msg.ClientNotHolder},
+		{"release empty lock", func(ls *LockState) {}, "client1", false, msg.ClientNotHolder},
 	}
 
 	for _, tt := range tests {
