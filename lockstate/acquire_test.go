@@ -10,38 +10,38 @@ import (
 func TestAcquire(t *testing.T) {
 	tests := []struct {
 		name    string
-		setup   func(*LockState)
+		setup   func(*State)
 		client  string
 		ttl     time.Duration
 		success bool
 		message string
 	}{
-		{"fresh lock", func(ls *LockState) {}, "client1", time.Minute, true, msg.Acquired},
-		{"renew own lock", func(ls *LockState) {
-			ls.Holder = "client1"
-			ls.ExpiresAt = time.Now().Add(time.Minute)
+		{"fresh lock", func(s *State) {}, "client1", time.Minute, true, msg.Acquired},
+		{"renew own lock", func(s *State) {
+			s.Holder = "client1"
+			s.ExpiresAt = time.Now().Add(time.Minute)
 		}, "client1", time.Minute, true, msg.Renewed},
-		{"held by another", func(ls *LockState) {
-			ls.Holder = "client1"
-			ls.ExpiresAt = time.Now().Add(time.Minute)
+		{"held by another", func(s *State) {
+			s.Holder = "client1"
+			s.ExpiresAt = time.Now().Add(time.Minute)
 		}, "client2", time.Minute, false, msg.HeldByAnother},
-		{"in grace period", func(ls *LockState) {
-			ls.Holder = "client1"
-			ls.ExpiresAt = time.Now().Add(-time.Second)
-			ls.GraceUntil = time.Now().Add(time.Minute)
+		{"in grace period", func(s *State) {
+			s.Holder = "client1"
+			s.ExpiresAt = time.Now().Add(-time.Second)
+			s.GraceUntil = time.Now().Add(time.Minute)
 		}, "client2", time.Minute, false, msg.GracePeriodActive},
-		{"expired past grace", func(ls *LockState) {
-			ls.Holder = "client1"
-			ls.ExpiresAt = time.Now().Add(-2 * time.Minute)
-			ls.GraceUntil = time.Now().Add(-time.Minute)
+		{"expired past grace", func(s *State) {
+			s.Holder = "client1"
+			s.ExpiresAt = time.Now().Add(-2 * time.Minute)
+			s.GraceUntil = time.Now().Add(-time.Minute)
 		}, "client2", time.Minute, true, msg.Acquired + " from client1"},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ls := New()
-			tt.setup(ls)
-			result := ls.Acquire(tt.client, tt.ttl)
+			s := &State{ttl: 30 * time.Second, gracePeriod: 5 * time.Second}
+			tt.setup(s)
+			result := s.Acquire(tt.client, tt.ttl)
 			if result.Success != tt.success {
 				t.Errorf("Success = %v, want %v", result.Success, tt.success)
 			}

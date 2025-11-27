@@ -13,8 +13,11 @@ go run . &    # Start server on :8080
 
 ```
 foolock/
-├── main.go              # Entry point
-├── lockstate/           # Core lock logic (acquire.go, release.go, lockstate.go)
+├── main.go              # Entry point, creates Manager
+├── lockstate/           # Core lock logic
+│   ├── lockstate.go     # State (per-job) and Manager (multi-job)
+│   ├── acquire.go       # Lock acquisition logic
+│   ├── release.go       # Lock release logic
 │   └── msg/msg.go       # Message constants
 ├── lockstatehttp/       # HTTP handlers
 ├── hurl/                # E2E tests
@@ -28,6 +31,7 @@ foolock/
 - All user-facing messages go in `lockstate/msg/msg.go`
 - Lock operations return typed result structs (`AcquireResult`, `ReleaseResult`, `StatusResult`)
 - JSON encoding errors are logged but don't fail responses
+- Locks are scoped per job - `Manager` manages multiple `State` instances keyed by job name
 
 ### HTTP Status Codes
 - 200: Success
@@ -55,7 +59,7 @@ Use conventional format: `feat:`, `fix:`, `docs:`, `test:`, `chore:`
 
 ## API Summary
 
-Single `/lock` endpoint:
-- `POST /lock?client=X&ttl=30s` - Acquire/renew lock
-- `DELETE /lock?client=X` - Release lock
-- `GET /lock` - Check status
+Single `/lock` endpoint with job-based locking (job defaults to "default"):
+- `POST /lock?client=X&job=Y&ttl=30s` - Acquire/renew lock for job Y
+- `DELETE /lock?client=X&job=Y` - Release lock for job Y
+- `GET /lock?job=Y` - Check status of job Y

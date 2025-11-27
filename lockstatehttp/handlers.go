@@ -12,6 +12,7 @@ import (
 
 type LockResponse struct {
 	Success    bool   `json:"success"`
+	Job        string `json:"job,omitempty"`
 	Holder     string `json:"holder"`
 	Message    string `json:"message,omitempty"`
 	ExpiresAt  string `json:"expires_at,omitempty"`
@@ -24,11 +25,11 @@ type ErrorResponse struct {
 }
 
 type Handler struct {
-	state *lockstate.LockState
+	manager *lockstate.Manager
 }
 
-func NewHandler(state *lockstate.LockState) *Handler {
-	return &Handler{state: state}
+func New(manager *lockstate.Manager) *Handler {
+	return &Handler{manager: manager}
 }
 
 func (h *Handler) HandleLock(w http.ResponseWriter, r *http.Request) {
@@ -56,6 +57,11 @@ func (h *Handler) handleAcquire(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	job := r.URL.Query().Get("job")
+	if job == "" {
+		job = "default"
+	}
+
 	ttlStr := r.URL.Query().Get("ttl")
 	ttl := 30 * time.Second
 	if ttlStr != "" {
@@ -70,13 +76,14 @@ func (h *Handler) handleAcquire(w http.ResponseWriter, r *http.Request) {
 		ttl = parsedTTL
 	}
 
-	result := h.state.Acquire(client, ttl)
+	result := h.manager.Acquire(job, client, ttl)
 
 	if result.Success {
-		log.Printf("Lock %s by %s until %s (in %s)", result.Message, client, result.ExpiresAt.Format(time.RFC3339), time.Until(result.ExpiresAt).Round(time.Second))
+		log.Printf("Lock %s by %s for job %s until %s (in %s)", result.Message, client, job, result.ExpiresAt.Format(time.RFC3339), time.Until(result.ExpiresAt).Round(time.Second))
 		w.WriteHeader(http.StatusOK)
 		if err := json.NewEncoder(w).Encode(LockResponse{
 			Success:   true,
+			Job:       job,
 			Holder:    result.Holder,
 			ExpiresAt: result.ExpiresAt.Format(time.RFC3339),
 			Message:   result.Message,
@@ -97,6 +104,7 @@ func (h *Handler) handleAcquire(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusConflict)
 	if err := json.NewEncoder(w).Encode(LockResponse{
 		Success:   result.Success,
+		Job:       job,
 		Holder:    result.Holder,
 		Message:   result.Message,
 		ExpiresAt: result.ExpiresAt.Format(time.RFC3339),
@@ -115,7 +123,12 @@ func (h *Handler) handleRelease(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result := h.state.Release(client)
+	job := r.URL.Query().Get("job")
+	if job == "" {
+		job = "default"
+	}
+
+	result := h.manager.Release(job, client)
 
 	if !result.Success {
 		w.WriteHeader(http.StatusForbidden)
@@ -125,21 +138,28 @@ func (h *Handler) handleRelease(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("Lock released by %s (held for %s)", client, result.HeldFor.Round(time.Second))
+	log.Printf("Lock released by %s for job %s (held for %s)", client, job, result.HeldFor.Round(time.Second))
 	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(LockResponse{
 		Success: true,
+		Job:     job,
 		Message: result.Message,
 	}); err != nil {
 		log.Printf("Error encoding response: %v", err)
 	}
 }
 
-func (h *Handler) handleStatus(w http.ResponseWriter, _ *http.Request) {
-	status := h.state.Status()
+func (h *Handler) handleStatus(w http.ResponseWriter, r *http.Request) {
+	job := r.URL.Query().Get("job")
+	if job == "" {
+		job = "default"
+	}
+
+	status := h.manager.Status(job)
 
 	response := LockResponse{
 		Success:   true,
+		Job:       job,
 		Holder:    status.Holder,
 		IsExpired: status.IsExpired,
 	}

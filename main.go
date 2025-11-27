@@ -11,8 +11,8 @@ import (
 const ServerAddr = ":8080"
 
 func main() {
-	state := lockstate.New()
-	handler := lockstatehttp.NewHandler(state)
+	manager := lockstate.New()
+	handler := lockstatehttp.New(manager)
 
 	http.HandleFunc("/lock", handler.HandleLock)
 

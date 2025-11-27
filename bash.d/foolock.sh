@@ -4,16 +4,20 @@
 #
 # Usage:
 #   source foolock.sh
-#   foolock_acquire [ttl]    # Acquire lock with optional TTL (default: 30s)
-#   foolock_release          # Release the lock
-#   foolock_status           # Check lock status
+#   foolock_acquire [job] [ttl]    # Acquire lock with optional job and TTL
+#   foolock_release [job]          # Release the lock for a job
+#   foolock_status [job]           # Check lock status for a job
 #
 # Environment variables:
 #   FOOLOCK_SERVER  - Lock server URL (default: http://localhost:8080)
+#   FOOLOCK_JOB     - Default job name (default: "default")
 #
 
 # Default server URL
 FOOLOCK_SERVER="${FOOLOCK_SERVER:-http://localhost:8080}"
+
+# Default job name
+FOOLOCK_JOB="${FOOLOCK_JOB:-default}"
 
 # Get the client ID from computer name and hardware UUID
 _foolock_get_client_id() {
@@ -26,13 +30,15 @@ _foolock_get_client_id() {
 
 # Acquire the lock
 # Arguments:
-#   $1 - TTL (optional, default: 30s, e.g., "10s", "5m", "1h")
+#   $1 - Job name (optional, default: $FOOLOCK_JOB or "default")
+#   $2 - TTL (optional, default: 30s, e.g., "10s", "5m", "1h")
 # Returns:
 #   0 on success, 1 on failure
 # Outputs:
 #   JSON response from server
 foolock_acquire() {
-    local ttl="${1:-30s}"
+    local job="${1:-$FOOLOCK_JOB}"
+    local ttl="${2:-30s}"
     local client_id
     client_id=$(_foolock_get_client_id)
 
@@ -45,7 +51,7 @@ foolock_acquire() {
     local http_code
 
     response=$(curl -s -w "\n%{http_code}" -X POST \
-        "${FOOLOCK_SERVER}/lock?client=${client_id}&ttl=${ttl}")
+        "${FOOLOCK_SERVER}/lock?client=${client_id}&job=${job}&ttl=${ttl}")
 
     http_code=$(echo "$response" | tail -n1)
     response=$(echo "$response" | sed '$d')
@@ -60,11 +66,14 @@ foolock_acquire() {
 }
 
 # Release the lock
+# Arguments:
+#   $1 - Job name (optional, default: $FOOLOCK_JOB or "default")
 # Returns:
 #   0 on success, 1 on failure
 # Outputs:
 #   JSON response from server
 foolock_release() {
+    local job="${1:-$FOOLOCK_JOB}"
     local client_id
     client_id=$(_foolock_get_client_id)
 
@@ -77,7 +86,7 @@ foolock_release() {
     local http_code
 
     response=$(curl -s -w "\n%{http_code}" -X DELETE \
-        "${FOOLOCK_SERVER}/lock?client=${client_id}")
+        "${FOOLOCK_SERVER}/lock?client=${client_id}&job=${job}")
 
     http_code=$(echo "$response" | tail -n1)
     response=$(echo "$response" | sed '$d')
@@ -92,12 +101,15 @@ foolock_release() {
 }
 
 # Check lock status
+# Arguments:
+#   $1 - Job name (optional, default: $FOOLOCK_JOB or "default")
 # Returns:
 #   0 always (status check doesn't fail)
 # Outputs:
 #   JSON response from server
 foolock_status() {
-    curl -s -X GET "${FOOLOCK_SERVER}/lock"
+    local job="${1:-$FOOLOCK_JOB}"
+    curl -s -X GET "${FOOLOCK_SERVER}/lock?job=${job}"
 }
 
 # Get current client ID (useful for debugging)

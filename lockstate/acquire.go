@@ -8,6 +8,7 @@ import (
 
 type AcquireResult struct {
 	Success bool
+	Job     string
 	Holder  string
 	Message string
 
@@ -15,75 +16,78 @@ type AcquireResult struct {
 	GraceUntil time.Time
 }
 
-func (ls *LockState) Acquire(client string, ttl time.Duration) AcquireResult {
-	ls.mu.Lock()
-	defer ls.mu.Unlock()
+func (s *State) Acquire(client string, ttl time.Duration) AcquireResult {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
 	now := time.Now()
 
-	if ls.isCurrentHolderRenewing(client) {
-		return ls.respRenewLock(now, ttl)
+	if s.isCurrentHolderRenewing(client) {
+		return s.respRenewLock(now, ttl)
 	}
 
-	if ls.isHeldByAnother(now) {
-		return ls.respAlreadyLocked()
+	if s.isHeldByAnother(now) {
+		return s.respAlreadyLocked()
 	}
 
-	if ls.isInGracePeriod(now) {
-		return ls.respActiveGracePeriod()
+	if s.isInGracePeriod(now) {
+		return s.respActiveGracePeriod()
 	}
 
-	return ls.acquireLock(client, now, ttl)
+	return s.acquireLock(client, now, ttl)
 }
 
-func (ls *LockState) isCurrentHolderRenewing(client string) bool {
-	return ls.Holder == client
+func (s *State) isCurrentHolderRenewing(client string) bool {
+	return s.Holder == client
 }
 
-func (ls *LockState) respRenewLock(now time.Time, ttl time.Duration) AcquireResult {
-	ls.ExpiresAt = now.Add(ttl)
-	ls.GraceUntil = ls.ExpiresAt.Add(ls.gracePeriod)
+func (s *State) respRenewLock(now time.Time, ttl time.Duration) AcquireResult {
+	s.ExpiresAt = now.Add(ttl)
+	s.GraceUntil = s.ExpiresAt.Add(s.gracePeriod)
 	return AcquireResult{
 		Success:   true,
-		Holder:    ls.Holder,
-		ExpiresAt: ls.ExpiresAt,
+		Job:       s.Job,
+		Holder:    s.Holder,
+		ExpiresAt: s.ExpiresAt,
 		Message:   msg.Renewed,
 	}
 }
 
-func (ls *LockState) isHeldByAnother(now time.Time) bool {
-	return ls.Holder != "" && now.Before(ls.ExpiresAt)
+func (s *State) isHeldByAnother(now time.Time) bool {
+	return s.Holder != "" && now.Before(s.ExpiresAt)
 }
 
-func (ls *LockState) respAlreadyLocked() AcquireResult {
+func (s *State) respAlreadyLocked() AcquireResult {
 	return AcquireResult{
 		Success:   false,
-		Holder:    ls.Holder,
-		ExpiresAt: ls.ExpiresAt,
+		Job:       s.Job,
+		Holder:    s.Holder,
+		ExpiresAt: s.ExpiresAt,
 		Message:   msg.HeldByAnother,
 	}
 }
 
-func (ls *LockState) isInGracePeriod(now time.Time) bool {
-	return ls.Holder != "" && now.After(ls.ExpiresAt) && now.Before(ls.GraceUntil)
+func (s *State) isInGracePeriod(now time.Time) bool {
+	return s.Holder != "" && now.After(s.ExpiresAt) && now.Before(s.GraceUntil)
 }
 
-func (ls *LockState) respActiveGracePeriod() AcquireResult {
+func (s *State) respActiveGracePeriod() AcquireResult {
 	return AcquireResult{
 		Success:    false,
-		Holder:     ls.Holder,
-		ExpiresAt:  ls.ExpiresAt,
-		GraceUntil: ls.GraceUntil,
+		Job:        s.Job,
+		Holder:     s.Holder,
+		ExpiresAt:  s.ExpiresAt,
+		GraceUntil: s.GraceUntil,
 		Message:    msg.GracePeriodActive,
 	}
 }
 
-func (ls *LockState) acquireLock(client string, now time.Time, ttl time.Duration) AcquireResult {
-	previousHolder := ls.Holder
-	ls.Holder = client
-	ls.AcquiredAt = now
-	ls.ExpiresAt = now.Add(ttl)
-	ls.GraceUntil = ls.ExpiresAt.Add(ls.gracePeriod)
+func (s *State) acquireLock(client string, now time.Time, ttl time.Duration) AcquireResult {
+	previousHolder := s.Holder
+	s.Holder = client
+	s.AcquiredAt = now
+	s.ExpiresAt = now.Add(ttl)
+	s.GraceUntil = s.ExpiresAt.Add(s.gracePeriod)
 
 	message := msg.Acquired
 	if previousHolder != "" {
@@ -92,8 +96,9 @@ func (ls *LockState) acquireLock(client string, now time.Time, ttl time.Duration
 
 	return AcquireResult{
 		Success:   true,
-		Holder:    ls.Holder,
-		ExpiresAt: ls.ExpiresAt,
+		Job:       s.Job,
+		Holder:    s.Holder,
+		ExpiresAt: s.ExpiresAt,
 		Message:   message,
 	}
 }

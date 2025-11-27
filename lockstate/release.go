@@ -7,31 +7,35 @@ import (
 )
 
 type ReleaseResult struct {
-	Success    bool
-	Message    string
-	HeldFor    time.Duration
+	Success bool
+	Job     string
+	Message string
+	HeldFor time.Duration
 }
 
-func (ls *LockState) Release(client string) ReleaseResult {
-	ls.mu.Lock()
-	defer ls.mu.Unlock()
+func (s *State) Release(client string) ReleaseResult {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
-	if ls.Holder != client {
+	if s.Holder != client {
 		return ReleaseResult{
 			Success: false,
+			Job:     s.Job,
 			Message: msg.ClientNotHolder,
 		}
 	}
 
-	heldFor := time.Since(ls.AcquiredAt)
+	heldFor := time.Since(s.AcquiredAt)
+	job := s.Job
 
-	ls.Holder = ""
-	ls.AcquiredAt = time.Time{}
-	ls.ExpiresAt = time.Time{}
-	ls.GraceUntil = time.Time{}
+	s.Holder = ""
+	s.AcquiredAt = time.Time{}
+	s.ExpiresAt = time.Time{}
+	s.GraceUntil = time.Time{}
 
 	return ReleaseResult{
 		Success: true,
+		Job:     job,
 		Message: msg.LockReleased,
 		HeldFor: heldFor,
 	}
