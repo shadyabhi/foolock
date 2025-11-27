@@ -15,9 +15,13 @@
 # Default server URL
 FOOLOCK_SERVER="${FOOLOCK_SERVER:-http://localhost:8080}"
 
-# Get the client ID from hardware UUID
+# Get the client ID from computer name and hardware UUID
 _foolock_get_client_id() {
-    system_profiler SPHardwareDataType | awk '/UUID/ { print $3 }'
+    local computer_name
+    local hardware_uuid
+    computer_name=$(system_profiler SPSoftwareDataType | grep "Computer Name" | cut -d: -f2 | sed 's/[^[:alnum:]+._-]//g')
+    hardware_uuid=$(system_profiler SPHardwareDataType | awk '/UUID/ { print $3 }')
+    echo "${computer_name}-${hardware_uuid}"
 }
 
 # Acquire the lock
