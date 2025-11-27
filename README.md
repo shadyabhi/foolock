@@ -1,5 +1,8 @@
 # foolock
 
+[![Go](https://github.com/shadyabhi/foolock/actions/workflows/go.yml/badge.svg)](https://github.com/shadyabhi/foolock/actions/workflows/go.yml)
+[![Coverage](https://raw.githubusercontent.com/shadyabhi/foolock/badges/coverage.svg)](https://github.com/shadyabhi/foolock/actions/workflows/go.yml)
+
 A simple HTTP-based distributed lock service for coordinating file access across devices sharing an iCloud folder (or similar).
 
 ## API
