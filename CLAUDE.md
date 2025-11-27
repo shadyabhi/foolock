@@ -59,9 +59,3 @@ Single `/lock` endpoint:
 - `POST /lock?client=X&ttl=30s` - Acquire/renew lock
 - `DELETE /lock?client=X` - Release lock
 - `GET /lock` - Check status
-
-## Key Constants
-
-- Default TTL: 30s
-- Grace period: 5s
-- Server: `:8080`
