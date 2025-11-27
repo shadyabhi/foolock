@@ -125,7 +125,7 @@ func (h *Handler) handleRelease(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("Lock released by %s", client)
+	log.Printf("Lock released by %s (held for %s)", client, result.HeldFor.Round(time.Second))
 	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(LockResponse{
 		Success: true,

@@ -81,6 +81,7 @@ func (ls *LockState) respActiveGracePeriod() AcquireResult {
 func (ls *LockState) acquireLock(client string, now time.Time, ttl time.Duration) AcquireResult {
 	previousHolder := ls.Holder
 	ls.Holder = client
+	ls.AcquiredAt = now
 	ls.ExpiresAt = now.Add(ttl)
 	ls.GraceUntil = ls.ExpiresAt.Add(ls.gracePeriod)
 

@@ -16,6 +16,7 @@ type LockState struct {
 	gracePeriod time.Duration
 
 	Holder     string
+	AcquiredAt time.Time
 	ExpiresAt  time.Time
 	GraceUntil time.Time
 }

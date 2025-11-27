@@ -7,8 +7,9 @@ import (
 )
 
 type ReleaseResult struct {
-	Success bool
-	Message string
+	Success    bool
+	Message    string
+	HeldFor    time.Duration
 }
 
 func (ls *LockState) Release(client string) ReleaseResult {
@@ -22,12 +23,16 @@ func (ls *LockState) Release(client string) ReleaseResult {
 		}
 	}
 
+	heldFor := time.Since(ls.AcquiredAt)
+
 	ls.Holder = ""
+	ls.AcquiredAt = time.Time{}
 	ls.ExpiresAt = time.Time{}
 	ls.GraceUntil = time.Time{}
 
 	return ReleaseResult{
 		Success: true,
 		Message: msg.LockReleased,
+		HeldFor: heldFor,
 	}
 }
